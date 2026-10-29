@@ -1,0 +1,26 @@
+diff --git a/docs/living/erd.md b/docs/living/erd.md
+index 819cc77..8407349 100644
+--- a/docs/living/erd.md
++++ b/docs/living/erd.md
+@@ -1,12 +1,17 @@
+-# ERD (Entity Relationship Diagram) — Current Sprint: Sprint 3
++# ERD (Entity Relationship Diagram) — Current Sprint: Sprint 4
+ 
+ > **Living document.** Updated when data model changes. See `docs/checkpoints/` for snapshots.  
+-> **Last updated:** S3_1
++> **Last updated:** S4_1
+ 
+ ---
+ 
+-> **Note:** Sprint 3 uses JSON file storage. This ERD defines the data model
+-> that will guide Sprint 4 database schema design.
++> **S4_1:** ERD unchanged from Sprint 3 — file storage (`tasks.json`) remains the
++> persistence backend in S4_1. `ITaskRepository` is designed so the data model
++> maps directly to the database schema introduced in S4_2 with no changes required.
++>
++> **S4_2:** `DatabaseTaskRepository` implemented using SQLAlchemy. The `TASK`
++> entity below maps directly to the `tasks` table. ERD will be updated in the
++> S4_2 Update Agile Docs assignment to reflect the live database schema.
+ 
+ ```mermaid
+ erDiagram

@@ -1,0 +1,151 @@
+diff --git a/docs/living/architecture.md b/docs/living/architecture.md
+index 04c4e1d..d84ff33 100644
+--- a/docs/living/architecture.md
++++ b/docs/living/architecture.md
+@@ -1,96 +1,79 @@
+-# Architecture — Current Sprint: Sprint 3
++# Architecture — Current Sprint: Sprint 4
+ 
+ > **Living document.** Updated each sprint. See `docs/checkpoints/` for snapshots.  
+-> **Last updated:** S3_2
++> **Last updated:** S4_1
+ 
+ ---
+ 
+-## Sprint 2 → Sprint 3 Evolution
++## Sprint 3 → Sprint 4 Evolution
+ 
+-Sprint 3 refactors the flat service structure into a proper layered OOP architecture.
++Sprint 3 introduced `TaskService` as the business logic layer. Sprint 4 goes one level deeper — introducing the **repository pattern** that separates `TaskService` from any specific persistence backend.
+ 
+-### Sprint 2 State
++### Sprint 3 State
+ ```
+-Blueprint Route → load_tasks() / save_tasks() → tasks.json
++HTTP Request → Route → TaskService → TaskStorage → tasks.json
+ ```
+-Routes directly called storage functions — no separation of business logic and persistence.
+ 
+-## Sprint 3 Layered Architecture
++## Sprint 4 Layered Architecture
+ 
+ ```
+ HTTP Request
+     ↓
+-Blueprint Route (routes/tasks.py)     ← HTTP only: request in, response out
++Blueprint Route (routes/tasks.py)        ← HTTP only — unchanged
+     ↓
+-TaskService (services/task_service.py) ← Business logic: CRUD operations
++TaskService (services/task_service.py)   ← business logic — unchanged interface
+     ↓
+-TaskStorage (services/task_storage.py) ← Persistence: wraps load/save functions
++ITaskRepository (repositories/base.py)   ← interface contract — NEW
+     ↓
+-tasks.json
++FileTaskRepository  OR  DatabaseTaskRepository
++    ↓
++tasks.json          OR  tasks.db (SQLite)
+ ```
+ 
+-## Key Changes from Sprint 2 to Sprint 3
++## Key Changes from Sprint 3 to Sprint 4
+ 
+-| Aspect | Sprint 2 | Sprint 3 |
++| Aspect | Sprint 3 | Sprint 4 |
+ |--------|----------|----------|
+-| **Task representation** | Python dict | `Task` class instance |
+-| **Business logic** | In route handlers | `TaskService` class |
+-| **Storage access** | Direct in routes | Via `TaskStorage` wrapper |
+-| **Dependency wiring** | None | `create_app()` injects `TaskService` |
+-| **Route access** | Direct function calls | `current_app.task_service` |
+-| **Test isolation** | File-based fixtures | `MockTaskService` |
+-| **API testing** | Manual curl/Postman | Automated `requests` tests |
+-| **API endpoints** | Same | Same (no new endpoints) |
++| **Persistence dependency** | `TaskService(TaskStorage)` | `TaskService(ITaskRepository)` |
++| **Interface contract** | None — duck typing | `ITaskRepository` ABC |
++| **Backends available** | File only | File (S4_1) + Database (S4_2) |
++| **Mock in tests** | Hand-rolled `MockTaskService` | `mocker.MagicMock()` via pytest-mock |
++| **CLI** | Present | **Removed** — tightly coupled, untestable |
++| **UI** | None | Flask templates + Jinja2 (S4_2) |
++| **CI pipeline** | 3 jobs, runs on PR **and** on merge | 1 job, runs on PR only |
++
++## CLI Retirement — SQA Decision
++
++The CLI called `load_tasks()` and `save_tasks()` directly — bypassing `TaskService` entirely. It could not be tested through any designed interface.
++
++**Lesson:** Code that cannot participate in the architecture's testing seams is a maintenance liability. The CLI's functionality is fully covered by the API — retirement is the correct SQA decision.
++
++## CI Pipeline
++
++`.github/workflows/python-app.yml` — tuned in S4_1 to run once per PR (SQA CI Pipeline Tune-Up, mitigates RISK-CI-01)
++
++| Aspect | Setting |
++|--------|---------|
++| **Trigger** | `pull_request` to `main` only — no run on merge |
++| **Skipped when** | Only `**.md`, `docs/**` or `images/**` files change |
++| **Jobs** | One job — *Lint, type-check, test* |
++| **Steps (in order)** | ruff → mypy → start Flask → pytest with coverage → stop Flask; a failed step skips the rest, except the stop step (`if: always()`) |
++| **Teardown** | `Stop Flask server` step from S3_2 retained — runs even on failure |
++| **Safety cap** | `timeout-minutes: 10` |
++| **Cost** | ~1–2 billed minutes per PR (was ~6) |
+ 
+ ## Test Architecture
+ 
+ ```
+ tests/
+-├── conftest.py              # Shared fixtures + MockTaskService injection
++├── conftest.py                    # client fixture + reset_tasks (API-based S4+)
++│                                  # MockTaskService REMOVED — mocker used instead
+ ├── api/
+-│   └── test_tasks_api.py    # E2E tests via requests (RF008)
+-├── mocks/
+-│   └── mock_task_service.py # MockTaskService for unit testing
+-├── models/
+-│   └── test_task_model.py   # Task class tests (RF004)
++│   └── test_tasks_api.py          # E2E via requests — unchanged
++├── repositories/
++│   └── test_file_task_repository.py  # RF010 contract tests
++├── storage/
++│   └── test_task_storage.py       # Raw I/O tests — unchanged
+ └── tasks/
+-    ├── test_task_service_add.py
+-    ├── test_task_service_get.py
+-    ├── test_task_service_complete.py
+-    └── test_task_service_delete.py
++    └── test_routes_with_mock.py   # Rewritten: mocker.MagicMock() (RF012)
+ ```
+-
+----
+-
+-## Project Structure (After S3_2)
+-
+-```
+-tasktracker/
+-├── app/
+-│   ├── __init__.py              # create_app(service=None) — optional DI
+-│   ├── models/
+-│   │   ├── __init__.py
+-│   │   └── task.py              # Task class with PEP 484 annotations
+-│   ├── routes/
+-│   │   ├── tasks.py             # Uses current_app.task_service
+-│   │   └── health.py
+-│   └── services/
+-│       ├── task_service.py      # TaskService — stores Task objects in self._tasks
+-│       └── task_storage.py      # TaskStorage wrapper + load/save functions
+-├── tests/
+-│   ├── conftest.py              # MockTaskService + reset_tasks fixture
+-│   ├── api/
+-│   │   ├── conftest.py
+-│   │   └── test_tasks_api.py    # requests E2E tests
+-│   └── tasks/
+-│       └── test_task_model.py   # TC-RF004-001 through 004
+-├── .github/workflows/
+-│   └── python-app.yml           # 3 jobs: lint, type-check, test (test starts + stops Flask)
+-└── pyproject.toml               # [tool.mypy] section added S3_2
+-```
+-
+-## Dependency Injection Pattern (Updated S3_2)
+-
+-`create_app()` accepts optional `service` parameter:
+-- **Production:** `create_app()` — creates `TaskService(task_storage)` with real storage
+-- **Testing:** `create_app(service=MockTaskService())` — injects mock, no file I/O

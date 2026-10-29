@@ -1,0 +1,155 @@
+diff --git a/docs/living/sprint_plan.md b/docs/living/sprint_plan.md
+index 5f0b596..3922e9a 100644
+--- a/docs/living/sprint_plan.md
++++ b/docs/living/sprint_plan.md
+@@ -1,96 +1,94 @@
+-# Sprint Plan — Current Sprint: Sprint 3
++# Sprint Plan — Current Sprint: Sprint 4
+ 
+ > **Living document.** Updated each sprint. See `docs/checkpoints/` for snapshots.  
+-> **Last updated:** S3_1
++> **Last updated:** S4_1
+ 
+ ---
+ 
+-# Sprint 3 Planning
++# Sprint 4 Planning
+ 
+-Sprint 3 transitions Task Tracker from procedural code to object-oriented architecture. The service layer is introduced via `TaskService`, persistence is wrapped in `TaskStorage`, and dependency injection wires everything through `create_app()`. Manual testing tools are replaced with automated `requests`-based API tests.
++Sprint 4 introduces the **repository pattern** — a professional software design technique that decouples `TaskService` from any specific persistence backend. By defining a formal `ITaskRepository` interface, the application can swap between file storage, a database, or a test double without changing any business logic or route code. Sprint 4 also introduces `pytest-mock` as the professional standard for mock-based testing, retires the CLI, and introduces the web UI.
+ 
+ ## 1. Sprint Goals
+ 
+-### Architecture Refactors
+-- 🔁 **RF004** — Introduce `Task` class to replace dictionary-based task model
+-- 🔁 **RF005** — Create `TaskService` class to encapsulate all task logic
+-- 🔁 **RF006A** — Wrap `load_tasks()`/`save_tasks()` in `TaskStorage` class
+-- 🔁 **RF006B** — Inject `TaskService` into Flask app via `create_app()`
+-- 🔁 **RF006C** — Refactor routes to use `current_app.task_service`
+-- 🔁 **RF008** — Replace manual tests with automated `requests`-based API tests
++### S4_1 — Repository Pattern and pytest-mock
++- 🔁 **RF009** — Define `ITaskRepository` ABC: formal interface contract
++- 🔁 **RF010** — Implement `FileTaskRepository`: wraps `TaskStorage`, implements `ITaskRepository`
++- 🔁 **RF012** — Replace hand-rolled `MockTaskService` with `pytest-mock` (`mocker` fixture)
++- 🔁 **RF013** — Retire CLI: tightly coupled to file storage, cannot participate in repository pattern
++- 🛠️ **[SQA] CI Pipeline Tune-Up** — run CI once per PR in one job; skip image-only changes (mitigates RISK-CI-01)
+ 
+-### User Stories
+-- ✅ **US029** — CLI UI: Mark Task Complete via `TaskService`
+-- ✅ **US035** — API Testing Automation using `requests` library
++### S4_2 — Database Repository and Web UI
++- 🔁 **RF011** — Implement `DatabaseTaskRepository`: SQLAlchemy-backed
++- ✅ **US012** — Add Task via Web Form: Flask templates, Jinja2
++- ✅ **US036** — Form Validation and Feedback
++- ✅ **US033** — User Journey: Manual Task Workflow via Web UI
+ 
+ ## 2. User Stories in Scope
+ 
+-* **US029** — CLI: Mark Task Complete
+-* **US035** — API Testing Automation (requests)
++* **US012** — Add Task via Web Form (S4_2)
++* **US033** — Manual Task Workflow via Web UI (S4_2)
++* **US036** — Form Validation and Feedback (S4_2)
+ 
+ ## 3. Test Planning Overview
+ 
+-- **TDD:** Write unit tests for `TaskService` methods before implementation
+-- **Coverage:** ≥ 80% code coverage
+-- **Tools:** `pytest`, `pytest-cov`, `requests`, `MockTaskService`
+-- **CI:** GitHub Actions — 3 jobs: lint, type-check, test
++- **TDD:** Write repository contract tests BEFORE implementing `FileTaskRepository`
++- **Contract testing:** Same test suite runs against `FileTaskRepository` (S4_1) and `DatabaseTaskRepository` (S4_2)
++- **Coverage:** ≥ 80%
++- **Tools:** `pytest`, `pytest-cov`, `pytest-mock`, `requests`, `mypy`, `ruff`, `bandit`
+ 
+ ## 4. Tools and Technologies
+ 
+-- **Flask** with Blueprint modular structure (continuing)
+-- **pytest** + **pytest-cov**
+-- **requests** library for automated E2E API tests
+-- **MockTaskService** (hand-rolled) for isolated route unit testing
+-- **mypy** — static type checking introduced S3_2
+-- **uv** for package management
+-- **ruff**, **bandit** for SQA tooling
++| Tool | Purpose | Notes |
++|------|---------|-------|
++| `pytest` | Test runner | `uv run python -m pytest -v` |
++| `pytest-cov` | Coverage | ≥ 80% |
++| `pytest-mock` | Route mock testing | `mocker.MagicMock()` — replaces hand-rolled `MockTaskService` |
++| `requests` | E2E API tests | Unchanged from Sprint 3 |
++| `mypy` | Type checking | Already enforced — `disallow_untyped_defs = true` |
++| `SQLAlchemy` | ORM for DB repository | S4_2 only |
++| `GitHub Actions` | CI — 1 job, PR-only | lint → type-check → test as steps; tuned in S4_1 to cut Actions minutes (RISK-CI-01) |
+ 
+ ## 5. Technical Design
+ 
+-### Architecture Layers
++### Repository Pattern Architecture
+ 
+ ```
+ HTTP Request
+     ↓
+-Blueprint Route (routes/tasks.py)
++Blueprint Route (routes/tasks.py)        ← unchanged
+     ↓
+-TaskService (services/task_service.py)
++TaskService (services/task_service.py)   ← accepts ITaskRepository
+     ↓
+-TaskStorage (services/task_storage.py)
++ITaskRepository (repositories/base.py)   ← interface contract
+     ↓
+-tasks.json
++FileTaskRepository  OR  DatabaseTaskRepository
+ ```
+ 
+-### API Endpoints (unchanged from Sprint 2)
++### Swappable Backends
+ 
+-| Method | Endpoint | Purpose | Status Codes |
+-|--------|----------|---------|--------------|
+-| GET | `/api/health` | Health check | 200 |
+-| GET | `/api/tasks` | Retrieve all tasks | 200 |
+-| POST | `/api/tasks` | Create new task | 201, 400 |
+-| PUT | `/api/tasks/<id>` | Mark task complete | 200, 404 |
+-| DELETE | `/api/tasks/<id>` | Delete task | 200, 404 |
+-
+-> No new endpoints in Sprint 3 — architecture changes only.
++```python
++create_app()              → FileTaskRepository()      → tasks.json
++create_app(use_db=True)   → DatabaseTaskRepository()  → tasks.db
++mocker.MagicMock()        → no I/O at all (tests)
++```
+ 
+ ## 6. Sprint-Level Completion Criteria
+ 
+-- [ ] `Task` class in `app/models/task.py` with correct attributes and `mark_complete()`
+-- [ ] `TaskService` class with all CRUD methods
+-- [ ] `TaskStorage` wrapper class with singleton instance
+-- [ ] `create_app()` injects `TaskService(task_storage)` into `app.task_service`
+-- [ ] All routes use `current_app.task_service` — no direct storage calls in routes
+-- [ ] All existing endpoint behaviors preserved (regression tests pass)
+-- [ ] Automated `requests`-based API tests implemented and passing
+-- [ ] `MockTaskService` used for isolated unit tests
+-- [ ] Code coverage ≥ 80%
+-- [ ] CI passes on all pushes and PRs
++- [ ] `ITaskRepository` ABC importable; concrete classes satisfy all abstract methods
++- [ ] `FileTaskRepository` passes all repository contract tests
++- [ ] Route tests pass using `mocker.MagicMock()` — `MockTaskService` fully removed
++- [ ] All Sprint 3 tests pass without modification
++- [ ] CLI removed; no broken imports
++- [ ] `uv run mypy app/` clean
++- [ ] Coverage ≥ 80%
++- [ ] GitHub Actions green on all merged PRs
++- [ ] CI runs once per PR (no run on merge), in one job; image-only and docs-only PRs skip CI
+ 
+ ## 7. Definition of Done
+ 
+ - [ ] All acceptance criteria met
+-- [ ] Unit tests written for `Task` class and `TaskService` methods (TDD)
++- [ ] TDD approach — contract tests written before implementation
+ - [ ] All tests pass locally and in CI
+-- [ ] Code coverage ≥ 80%
+-- [ ] PR merged to main via GitHub Flow
+-- [ ] No regressions in existing functionality
++- [ ] PR merged to main via GitHub Flow — every change reaches `main` through a PR (CI does not run on direct pushes)
++- [ ] No regressions from Sprint 3

@@ -1,0 +1,119 @@
+diff --git a/docs/living/class_diagram.md b/docs/living/class_diagram.md
+index e798afd..b85d0eb 100644
+--- a/docs/living/class_diagram.md
++++ b/docs/living/class_diagram.md
+@@ -1,7 +1,7 @@
+-# Class Diagram — Current Sprint: Sprint 3
++# Class Diagram — Current Sprint: Sprint 4
+ 
+ > **Living document.** Updated when architecture changes. See `docs/checkpoints/` for snapshots.  
+-> **Last updated:** S3_1
++> **Last updated:** S4_1
+ 
+ ---
+ 
+@@ -12,24 +12,51 @@ classDiagram
+         +str title
+         +str description
+         +bool completed
+-        +mark_complete()
++        +mark_complete() None
++        +to_dict() dict
+     }
+ 
+-    class TaskService {
+-        +__init__(storage: TaskStorage)
+-        +add_task(title, description) Task
+-        +get_tasks() List[Task]
+-        +complete_task(task_id) Task
+-        +delete_task(task_id) Task
++    class ITaskRepository {
++        <<abstract>>
++        +add_task(title, description)*
++        +get_all_tasks()*
++        +complete_task(task_id)*
++        +delete_task(task_id)*
++        +clear_tasks()*
++    }
++
++    class FileTaskRepository {
++        +add_task(title, description) dict
++        +get_all_tasks() list
++        +complete_task(task_id) dict | None
++        +delete_task(task_id) dict | None
++        +clear_tasks() None
++    }
++
++    class DatabaseTaskRepository {
++        +add_task(title, description) dict
++        +get_all_tasks() list
++        +complete_task(task_id) dict | None
++        +delete_task(task_id) dict | None
++        +clear_tasks() None
+     }
+ 
+     class TaskStorage {
+-        +load_tasks() List[dict]
++        +load_tasks() list
+         +save_tasks(tasks) None
+     }
+ 
++    class TaskService {
++        +__init__(repository: ITaskRepository)
++        +add_task(title, description) dict
++        +get_all_tasks() list
++        +complete_task(task_id) dict | None
++        +delete_task(task_id) dict | None
++        +clear_tasks() None
++    }
++
+     class FlaskApp {
+-        +create_app() Flask
++        +create_app(service, use_db) Flask
+         +task_service: TaskService
+     }
+ 
+@@ -38,27 +65,31 @@ classDiagram
+         +GET /api/tasks
+         +PUT /api/tasks/id
+         +DELETE /api/tasks/id
++        +POST /api/tasks/reset
+     }
+ 
+-    FlaskApp --> TaskService : injects
+-    FlaskApp --> TaskRoutes : registers
+-    TaskRoutes --> TaskService : current_app.task_service
+-    TaskService --> TaskStorage : injected storage
++    ITaskRepository <|-- FileTaskRepository : implements
++    ITaskRepository <|-- DatabaseTaskRepository : implements
++    FileTaskRepository --> TaskStorage : wraps
++    TaskService --> ITaskRepository : depends on interface
+     TaskService --> Task : creates/manages
++    FlaskApp --> TaskService : injects via create_app()
++    FlaskApp --> TaskRoutes : registers blueprint
++    TaskRoutes --> TaskService : current_app.task_service
+ ```
+ 
+ ## Key Relationships
+ 
+ | Relationship | From | To | Type |
+-|-------------|------|----|------|
++|---|---|---|---|
++| Interface | `ITaskRepository` | `FileTaskRepository` | Inheritance (implements ABC) |
++| Interface | `ITaskRepository` | `DatabaseTaskRepository` | Inheritance (implements ABC) |
++| Dependency | `TaskService` | `ITaskRepository` | Depends on interface — not concrete class |
++| Wraps | `FileTaskRepository` | `TaskStorage` | Delegation |
+ | Injection | `FlaskApp` | `TaskService` | Dependency Injection |
+-| Usage | `TaskRoutes` | `TaskService` | Association |
+-| Delegation | `TaskService` | `TaskStorage` | Composition |
+-| Creation | `TaskService` | `Task` | Association |
+ 
+ ## Notes
+ 
+-- `TaskStorage` is injected into `TaskService` constructor
+-- Routes never import `TaskStorage` or `TaskService` directly — access via `current_app`
+-- `Task` class replaces plain Python dictionaries used in Sprint 2
+-- `MockTaskService` (used in tests) substitutes for `TaskService` without file I/O
++- `TaskService` now depends on `ITaskRepository` — not `TaskStorage` directly
++- `MockTaskService` (hand-rolled) is **removed** — `mocker.MagicMock()` replaces it
++- `DatabaseTaskRepository` shown here but implemented in S4_2

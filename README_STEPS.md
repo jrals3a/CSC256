@@ -1,77 +1,64 @@
-# S3_2 Lab — Verified Solution Files
+# S4_1 Agile Documentation — what's here and what's left for you
 
-Everything for RF004 (Task class), the mypy tightening, the TaskService
-refactor to `Task` objects, `create_app(service=)` injection, `MockTaskService`,
-and the `requests` E2E suite has been built and run end to end in this folder.
-Each TDD step went through a real RED then GREEN, every command used
-`uv run python -m pytest` as the lab specifies, and the final state is:
+## What I built (all in this folder)
 
-**49 tests passing (46 + 3 E2E) · 94% coverage · `mypy app/` clean · `ruff` clean**
+| Path | What it is |
+|---|---|
+| `task-tracker/` | Local git repo: the instructor starter + your S3_2 living docs as the baseline, then Phases 2–6 applied exactly as written (see "Discrepancies" for the few places I deviated). |
+| `task-tracker/docs/checkpoints/s3_2/` | Phase 2 — 7-file snapshot of the S3_2 living docs. |
+| `task-tracker/docs/living/` | Phases 3–6 — sprint_plan, architecture, test_plan, test_cases, api_reference, class_diagram, erd, all `Last updated: S4_1`. |
+| `task-tracker/images/s4/kahsai-S4_1-agile-docs.md` | The PDF template, renamed, with name and date filled in. Repo URL and screenshots are yours. |
+| `github_issues_reference.md` | Epic + 10 sub-issue bodies, ready to paste (Phase 7). |
+| `diffs/` | `git diff` patch for each PR, so you can see exactly what each "Files Changed" tab should show. |
 
-## Real discrepancies I found
+The git history mirrors the assignment's three PRs (`docs/s4-checkpoint`, `docs/s4-sprint-plan`, `docs/s4-agile-docs`, each merged `--no-ff`).
+Those merges are a **local simulation**. Nothing was pushed, no PR or issue exists on GitHub, and no screenshot has been taken.
 
-1. **Port 5000 is taken by macOS AirPlay, and it breaks the E2E tests (important).**
-   On a Mac with "AirPlay Receiver" on, `127.0.0.1:5000` answers `403 Forbidden`
-   (Server: AirTunes) and Flask cannot start there. The E2E fixture only skips
-   on `ConnectionError`, and a 403 is not a connection error. The lab's claim
-   that plain `pytest -v` needs no server is therefore false on your Mac: the
-   3 E2E tests **fail** (`3 failed, 46 passed`) instead of skipping.
-   **Fix (your system setting, I can't change it):** System Settings -> General
-   -> AirDrop & Handoff -> turn **AirPlay Receiver** off. After that,
-   `uv run python -m app` binds 5000 and everything in the lab works as written.
-   For my own verification I pointed the E2E files at port 5050 temporarily and
-   restored them to 5000 afterwards (checked with grep). The files in this
-   folder use port 5000 exactly as the lab specifies.
+## Doing it in your real repo
 
-2. **"4 E2E tests" is really 3.** The lab, the PDF template (screenshot 25), and
-   the checklist say four E2E tests, but the code provided has three test
-   functions (`test_add_and_get_tasks_end_to_end` covers TC-RF008-001 and 002).
-   Screenshot 25 will show `3 passed`.
+Your real TaskTracker repo is not on this machine (it was never cloned), so use these files as the source:
 
-3. **P2b's `create_app` instruction doesn't match the starter.** It says to find
-   `def create_app(service=None):`, but the starter has `def create_app():`,
-   and a note in the same phase says not to add the `service` parameter yet.
-   I annotated it as `create_app() -> Flask` in Phase 2b (that resolves exactly
-   the 20 errors the lab predicts) and added `service: object = None` in Phase 7
-   where the injection logic goes.
+1. In your repo, create `docs/s4-checkpoint` and copy your *current* `docs/living/*.md` to `docs/checkpoints/s3_2/` (the 7 `cp` commands in Phase 2). If your living docs are the clean S3_2 versions, `task-tracker/docs/checkpoints/s3_2/` is identical.
+2. `docs/s4-sprint-plan`: replace `docs/living/sprint_plan.md` with `task-tracker/docs/living/sprint_plan.md`.
+3. `docs/s4-agile-docs`: copy the other six files from `task-tracker/docs/living/`, committing after each (commit messages are in `git log`).
+4. Create the Epic and 10 sub-issues from `github_issues_reference.md`.
+5. Take Screenshots 1–7 (and 3a if needed) from each PR's **Files Changed** tab into `images/s4/` using the filenames in the template. You take these. They are the evidence that you did the PRs.
+6. Export the template to PDF and submit `kahsai-S4_1-agile-docs.pdf` on Blackboard.
 
-4. **`storage: object` vs `storage: Any`.** Phase 2b annotates the constructor as
-   `storage: object = None`, but Phase 3 tells you to find `storage: Any = None`.
-   Use `Any` in Phase 3 (what the lab's final "verify" block shows). The
-   `# type: ignore[attr-defined]` comments stay and mypy remains clean.
+If you copy files rather than re-doing the edits, check `git diff` on `test_plan.md`/`test_cases.md` first: those two were edited into the S3_2 versions of my docs, so they will only match your repo if your S3_2 docs are the same.
 
-5. **The 3 expected failures after Phase 3 are real**, and they clear on their
-   own after Phases 5 and 6 (nothing to edit), exactly as the lab says.
+## Screenshot map
 
-## Screenshot map (every command already verified)
-
-| # | File | Command | What you'll see |
+| # | Save as | Where | Should show |
 |---|---|---|---|
-| 14 | `14_s3_2_start.png` | `uv run python -m pytest -v` | 33 passed |
-| 15 | `15_task_model_red.png` | `... pytest tests/tasks/test_task_model.py -v` (no task.py yet) | `ModuleNotFoundError: app.models.task` |
-| 16 | `16_task_model_green.png` | same, after `task.py` | 3 passed |
-| 17 | `17_mypy_task_clean.png` | `uv run mypy app/models/task.py` | Success, 1 source file |
-| 18 | `18_mypy_errors.png` | `uv run mypy app/` after tightening | Found 20 errors in 5 files |
-| 18b | `18b_manual_diff_review.png` | GitHub Desktop Changes tab | annotations across 5 files (yours) |
-| 19 | `19_mypy_clean.png` | `uv run mypy app/` | Success, 8 source files |
-| 20 | `20_all_tests_mypy_clean.png` | `uv run python -m pytest -v` | 36 passed |
-| 21 | `21_taskservice_integration_pass.png` | `... pytest tests/tasks/test_task_service_*_integration.py -v`, then full | 7 passed, then 43 passed |
-| 22 | `22_mock_routes_pass.png` | `... pytest tests/tasks/test_routes_with_mock.py -v` | 3 passed |
-| 23 | `23_e2e_add_get_pass.png` | server on 5000, then `... pytest tests/api/test_tasks_api.py::test_add_and_get_tasks_end_to_end -v` | 1 passed |
-| 24 | `24_e2e_complete_pass.png` | same with `::test_complete_task_end_to_end` | 1 passed |
-| 25 | `25_e2e_all_pass.png` | `... pytest tests/api/ -v` | 3 passed (not 4) |
-| 26 | `26_full_coverage.png` | server running, `... pytest --cov=app --cov-report=term-missing -v` | 49 passed, 94% |
-| 27 | `27_coverage_html.png` | `... pytest --cov=app --cov-report=html -v`, open `htmlcov/index.html` | file-by-file breakdown |
+| 1 | `images/s4/sprint_plan.md.png` | `docs/s4-sprint-plan` PR, Files Changed | PR title and `sprint_plan.md` replaced (`diffs/PR2_*.patch`) |
+| 2 | `architecture.md.png` | `docs/s4-agile-docs` PR | layered architecture, Sprint 3→4 table with CI row, CLI note, CI Pipeline section |
+| 3 / 3a | `test_plan.md.png` / `test_plan.md_3a.png` | same PR | new objectives, tools rows, CI Test Execution Strategy, RISK-CI-01 Mitigated. About 80 diff lines, so 3a is probably needed. |
+| 4 | `test_cases.md.png` | same PR | RF009, RF010, RF012, RF013, TC-SQA-002–004 |
+| 5 | `api_reference.md.png` | same PR | S4_1 note and `POST /api/tasks/reset` |
+| 6 | `class_diagram.md.png` | same PR | ITaskRepository / FileTaskRepository / DatabaseTaskRepository |
+| 7 | `erd.md.png` | same PR | S4_1 / S4_2 note |
 
-Run the commands yourself in your own terminal for genuine screenshots. Turn
-off AirPlay Receiver first (see discrepancy 1) or the E2E screenshots won't work.
+If Screenshot 3 fits in one image, delete the 3a section from the template before exporting.
 
-## GitHub Desktop / GitHub.com (yours, same boundary as every lab)
+## Discrepancies I found (and what I did)
 
-Branches per the lab: `feature/task-class-rf004`, `feature/mypy-tighten-s3`,
-`feature/taskservice-task-integration` (phases 3-6, one PR),
-`mocking-infrastructure` (phases 7-8, one PR), `e2e-tests` (phases 9-12, one PR).
-Note the lab's own "GitHub Flow Summary" table at the bottom lists different
-branch names (e.g. `feature/mock-di`); the phase headings above are the
-authoritative ones. Also create the tracking issue from P9-2
-(`CI: pin uv version in GitHub Actions workflows`) and keep it open.
+1. **OBJ numbers collide.** The assignment adds OBJ-22 to OBJ-26a, but your test plan already has OBJ-22 (Sprint 2 regression, S3_1) and OBJ-23 (mypy, S3_2). Duplicate IDs make the plan ambiguous, so I numbered the new rows **OBJ-24 to OBJ-28 and OBJ-28a** in the same order and with the same wording, and edited the Screenshot 3 caption in your template copy to say so. If your instructor grades literally on "OBJ-22–26a", renumber in `test_plan.md`; it is a find-and-replace.
+2. **10 sub-issues vs 9.** The assignment (Phase 7 and checklist) lists 10, including `[RF014] — Playwright UI Testing` (S4_3). The Issues Guidance says 9 and has no text for RF014. I drafted RF014 and labelled it as a draft.
+3. **RF013 test case numbering.** The assignment's `test_cases.md` defines TC-RF013-001 as "full suite passes"; the guidance's RF013 issue lists it as "no `cli/` directory". I added **TC-RF013-002 (cli/ absent)** to `test_cases.md` and swapped the order in the issue body so the two match.
+4. **RF012 count.** The guidance says 5 route tests (TC-RF012-001–005); the test-cases note in the assignment says the lab has 7 (001–007). Left both as written; check against the S4_1 lab and fix the issue text if it says 7.
+5. **Epic criteria source.** Guidance says paste from "Sections 1 and 7" of the sprint plan; Section 1 is the goals list and Section 6 holds the completion criteria, so the Epic body uses Sections 6 and 7.
+6. **"CI Test Execution Strategy" placement.** The assignment says "after In Scope", but In Scope is a `###` subsection followed by Out of Scope. Putting a `##` heading between them would break the structure, so it sits right after Out of Scope, before "Test Types and Tools".
+7. **Extra edits for consistency.** I also changed the document titles from "Sprint 3" to "Sprint 4" in test_plan, test_cases, api_reference and erd (the assignment only says to bump `Last updated`), and the stale "CI Validation: Every push and PR" row in the Test Types table to "every pull request to `main` (not on merge)".
+8. **Baseline docs.** The starter zip's living docs are at S3_1, and its `api_reference.md` has duplicated POST/GET sections and a "Sprint 1" title. I used your S3_2 docs as the baseline instead.
+9. **Starter workflow.** The starter's `python-app.yml` still has the old 3 jobs / push+PR triggers. That is expected: the tune-up is the S4_1 *lab* (branch `ci/pipeline-tune-up`), not this assignment. The docs describe the target state.
+10. **`#N` placeholders** in `test_plan.md` (2 in the living doc, the same 2 in the s3_2 checkpoint) still need the real number of your `CI: pin uv version in GitHub Actions workflows` issue.
+11. **TC-SQA numbering.** The assignment starts the CI cases at TC-SQA-002; your S3_2 teardown case is called TC-CI-001, so there is no TC-SQA-001. I left both as they are.
+12. **Phase 2/3/6 PR descriptions:** the instructions say to use Copilot's generated description and not edit it. That's in GitHub Desktop and is yours.
+
+## Still yours to do
+
+- Push, open the 3 PRs, wait for CI, merge, do **not** delete the branches.
+- Create the Epic and sub-issues, then check the Epic shows all 10 under Relationships.
+- Take the 7+ screenshots and export/submit the PDF.
+- The Blackboard "S4_1 Reflection & Learning" assignment is separate.

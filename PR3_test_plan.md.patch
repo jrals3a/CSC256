@@ -1,0 +1,81 @@
+diff --git a/docs/living/test_plan.md b/docs/living/test_plan.md
+index 0cb4230..a5f56fc 100644
+--- a/docs/living/test_plan.md
++++ b/docs/living/test_plan.md
+@@ -1,7 +1,7 @@
+-# Test Plan — Current Sprint: Sprint 3
++# Test Plan — Current Sprint: Sprint 4
+ 
+ > **Living document.** Updated each sprint. See `docs/checkpoints/` for snapshots.  
+-> **Last updated:** S3_2
++> **Last updated:** S4_1
+ 
+ ---
+ 
+@@ -36,6 +36,12 @@ This document outlines the testing strategy for the TaskTracker project, current
+ | OBJ-21 | Verify MockTaskService isolation (RF008) | Unit tests run without file I/O |
+ | OBJ-22 | Regression — all Sprint 2 endpoints still work | All existing tests pass after refactor |
+ | OBJ-23 | SQA Tooling Review — mypy configuration verified and enforced | `uv run mypy app/` returns `Success: no issues found` |
++| OBJ-24 | Verify `ITaskRepository` ABC defines the correct interface | ABC importable; concrete classes satisfy all abstract methods |
++| OBJ-25 | Verify `FileTaskRepository` satisfies `ITaskRepository` contract | All contract tests pass |
++| OBJ-26 | Verify `pytest-mock` route tests equivalent to hand-rolled mock | Same assertions, mocker fixture used |
++| OBJ-27 | Verify CLI retirement does not break existing tests | Full test suite passes after `cli/` removed |
++| OBJ-28 | Regression — all Sprint 3 tests pass after refactor | All existing tests pass unchanged |
++| OBJ-28a | Verify CI pipeline runs the same checks once per PR | One run per PR, none on merge; lint → type-check → test steps all run; image/docs-only PRs skip CI |
+ 
+ ## Test Scope
+ 
+@@ -61,6 +67,12 @@ This document outlines the testing strategy for the TaskTracker project, current
+ * E2E requests-based API tests — RF008
+ * MockTaskService for isolated route tests — RF008
+ * Regression: all Sprint 2 tests pass after refactor
++* `ITaskRepository` ABC — RF009
++* `FileTaskRepository` contract tests — RF010
++* pytest-mock route tests — RF012
++* CLI retirement verification — RF013
++* CI pipeline tune-up verification — [SQA] (RISK-CI-01)
++* Regression: all Sprint 3 tests pass unchanged
+ 
+ ### Out of Scope
+ * Persistent storage (Sprint 2+)
+@@ -68,13 +80,21 @@ This document outlines the testing strategy for the TaskTracker project, current
+ * Performance testing
+ * UI testing (Sprint 4+)
+ 
++## CI Test Execution Strategy
++
++- **When CI runs:** on every pull request to `main`; not on merge (the PR run already tested the merge result)
++- **What runs, in order:** ruff → mypy → Flask server → pytest with coverage → Stop Flask server — a failed step skips the rest; the stop step always runs (`if: always()`, carried over from S3_2)
++- **What does not trigger CI:** changes to only `**.md`, `docs/**`, or `images/**`
++- **Exit criterion:** all CI steps green on the PR before merge
++- **Constraint:** shared GitHub Actions minutes budget — see RISK-CI-01
++
+ ## Test Types and Tools
+ 
+ | Type | Tool | When Used |
+ |------|------|-----------|
+ | Automated (Unit/API) | pytest | Every branch; required for CI |
+ | Code Coverage | pytest-cov | Every CI run |
+-| CI Validation | GitHub Actions | Every push and PR |
++| CI Validation | GitHub Actions | Every pull request to `main` (not on merge — see CI Test Execution Strategy) |
+ | Manual | curl / Postman / CLI | Validating endpoints manually |
+ 
+ ## SQA Tools
+@@ -87,6 +107,8 @@ This document outlines the testing strategy for the TaskTracker project, current
+ | bandit | `uv run bandit -r app/` | Production code |
+ | pre-commit | `uv run pre-commit run --all-files` | Planned — activated in S5_2 (RF017) with ruff, bandit, and mypy hooks |
+ | mypy | `uv run mypy app/` | `disallow_untyped_defs = true`; `exclude = ["tests/", "setup_browsers.py"]` in `[tool.mypy]`; production code only |
++| pytest-mock | `mocker.MagicMock()` | Replaces hand-rolled `MockTaskService` from Sprint 3 |
++| GitHub Actions | `python-app.yml` | One job on each PR: ruff → mypy → pytest. Tuned in S4_1 — no run on merge; image/docs-only PRs skip CI |
+ 
+ ## Pass/Fail Criteria
+ 
+@@ -126,7 +148,7 @@ File deleted after split to prevent duplicate test execution.
+ - **Root cause:** Pipeline design, not usage — 3 jobs × 2 triggers (PR + merge) ≈ 6 billed minutes per PR
+ - **Planned mitigation:** Sprint 4 (S4_1) — run CI on pull requests only, in one job; skip image-only changes
+ - **Monitoring:** Organization usage report reviewed monthly
+-- **Status:** Open
++- **Status:** Mitigated in S4_1 — [SQA] CI Pipeline Tune-Up (PR-only, single job, images ignored). Continue monthly monitoring.
+ 
+ ---
+ 

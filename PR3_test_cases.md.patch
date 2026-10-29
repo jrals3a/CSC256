@@ -1,0 +1,146 @@
+diff --git a/docs/living/test_cases.md b/docs/living/test_cases.md
+index 0f9ef47..f45012a 100644
+--- a/docs/living/test_cases.md
++++ b/docs/living/test_cases.md
+@@ -1,7 +1,7 @@
+-# Test Cases — Current Sprint: Sprint 3
++# Test Cases — Current Sprint: Sprint 4
+ 
+ > **Living document.** Updated each sprint. See `docs/checkpoints/` for snapshots.  
+-> **Last updated:** S3_2
++> **Last updated:** S4_1
+ 
+ ---
+ 
+@@ -460,3 +460,131 @@ Test cases for US000–US004. Each case maps to acceptance criteria in `tt_user_
+ | **Type** | Automated (CI) |
+ | **Steps** | Open a PR — observe the `test` job in GitHub Actions |
+ | **Expected** | `Stop Flask server` step passes; **Post Install uv** completes in seconds (not a 5-minute timeout); job green |
++
++---
++
++## RF009 — ITaskRepository Interface
++
++### TC-RF009-001: ITaskRepository Cannot Be Instantiated Directly
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF009-001 |
++| **Type** | Automated (Unit) |
++| **Steps** | Attempt `ITaskRepository()` |
++| **Expected** | `TypeError` raised — abstract class cannot be instantiated |
++
++### TC-RF009-002: FileTaskRepository Is Recognized as ITaskRepository
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF009-002 |
++| **Type** | Automated (Unit) |
++| **Steps** | `isinstance(FileTaskRepository(), ITaskRepository)` |
++| **Expected** | `True` |
++
++---
++
++## RF010 — FileTaskRepository
++
++### TC-RF010-001: add_task() Returns Dict with Correct Fields
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF010-001 |
++| **Type** | Automated (Contract) |
++| **Steps** | `repo.add_task("Buy milk", "2%")` |
++| **Expected** | Returns dict with `id`, `title`, `description`, `completed: False` |
++
++### TC-RF010-002: get_all_tasks() Returns Empty List Initially
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF010-002 |
++| **Type** | Automated (Contract) |
++| **Steps** | Fresh `FileTaskRepository()` → `repo.get_all_tasks()` |
++| **Expected** | Returns `[]` |
++
++### TC-RF010-004: complete_task() Sets completed to True
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF010-004 |
++| **Type** | Automated (Contract) |
++| **Steps** | Add task → `repo.complete_task(task_id)` |
++| **Expected** | Returns task dict with `completed: True` |
++
++### TC-RF010-008: clear_tasks() Removes All Tasks
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF010-008 |
++| **Type** | Automated (Contract) |
++| **Steps** | Add 3 tasks → `repo.clear_tasks()` → `repo.get_all_tasks()` |
++| **Expected** | Returns `[]` |
++
++> The lab's `test_file_task_repository.py` has eight RF010 contract tests (TC-RF010-001 through 008). The four above are representative; the IDs match the test docstrings.
++
++---
++
++## RF012 — pytest-mock Route Tests
++
++### TC-RF012-001: POST /api/tasks with mocker Returns 201
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF012-001 |
++| **Type** | Automated (Unit) |
++| **Steps** | `mocker.MagicMock()` injected → POST `/api/tasks` |
++| **Expected** | 201 Created; no file I/O |
++
++### TC-RF012-005: mocker Verifies Route Delegates to Service with Correct Args
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF012-005 |
++| **Type** | Automated (Unit) |
++| **Steps** | POST `/api/tasks` with mocker → `mock.add_task.assert_called_once_with(...)` |
++| **Expected** | Assertion passes — confirms route delegates to service with the request's arguments |
++
++> The lab's `test_routes_with_mock.py` has seven RF012 tests (TC-RF012-001 through 007). The two above are representative; the IDs match the test docstrings.
++
++---
++
++## RF013 — CLI Retirement
++
++### TC-RF013-001: Full Test Suite Passes After CLI Removal
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF013-001 |
++| **Type** | Automated (Regression) |
++| **Steps** | `uv run python -m pytest -v` after CLI retirement PR merged |
++| **Expected** | All tests pass — CLI removal has no effect on test suite |
++
++### TC-RF013-002: cli/ Directory No Longer Exists
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-RF013-002 |
++| **Type** | Manual (Verification) |
++| **Steps** | After the CLI retirement PR merges, `ls cli` on `main` (or browse the repo on GitHub) |
++| **Expected** | `cli/` does not exist; no remaining imports or references to `cli` in the codebase |
++
++---
++
++## SQA — CI Pipeline Tune-Up
++
++### TC-SQA-002: CI Runs on the PR, Not on Merge
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-SQA-002 |
++| **Type** | Manual (CI verification) |
++| **Steps** | Merge the `ci/pipeline-tune-up` PR → Actions tab → filter **Python application** |
++| **Expected** | The PR run is the newest run; no "Merge pull request" run appears after it |
++
++### TC-SQA-003: One Job Runs All Checks in Order
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-SQA-003 |
++| **Type** | Manual (CI verification) |
++| **Steps** | Open the PR's **Lint, type-check, test** check → expand steps |
++| **Expected** | Lint (ruff), Type check (mypy), Flask start/wait, Test (pytest), Stop Flask server steps all green in one job |
++
++### TC-SQA-004: Docs/Image-Only PR Skips CI
++| Field | Detail |
++|-------|--------|
++| **ID** | TC-SQA-004 |
++| **Type** | Manual (CI verification) |
++| **Steps** | Open a PR that changes only files in `docs/` or `images/` (e.g. this assignment's docs PR) |
++| **Expected** | No Python application check runs on the PR |
