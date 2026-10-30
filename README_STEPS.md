@@ -1,77 +1,76 @@
-# S3_2 Lab — Verified Solution Files
+# S4_1 Lab — Verified Solution (Repository Pattern, pytest-mock, CLI Retirement)
 
-Everything for RF004 (Task class), the mypy tightening, the TaskService
-refactor to `Task` objects, `create_app(service=)` injection, `MockTaskService`,
-and the `requests` E2E suite has been built and run end to end in this folder.
-Each TDD step went through a real RED then GREEN, every command used
-`uv run python -m pytest` as the lab specifies, and the final state is:
+Every phase of the lab was built in `task-tracker/` and tested for real, with the RED then GREEN runs the lab asks for.
+Final state on `main`: **64 tests passing · 93% coverage · `mypy app/` clean · `ruff check .` clean**.
 
-**49 tests passing (46 + 3 E2E) · 94% coverage · `mypy app/` clean · `ruff` clean**
+The git history follows the lab's four branches, with one commit per lab step and the lab's commit messages:
 
-## Real discrepancies I found
+| Branch | Lab phase |
+|---|---|
+| `ci/pipeline-tune-up` | 1A: workflow replaced (PR-only, one job, `images/**` ignored) |
+| `feature/rf009-rf010-repository-pattern` | 2: ABC, contract tests, `FileTaskRepository`, `TaskService`, `create_app`, 8 test files |
+| `test/rf012-pytest-mock` | 3: `test_routes_with_mock.py` rewrite, `conftest.py` simplified |
+| `refactor/rf013-retire-cli` | 4: `cli/` removed, README updated |
 
-1. **Port 5000 is taken by macOS AirPlay, and it breaks the E2E tests (important).**
-   On a Mac with "AirPlay Receiver" on, `127.0.0.1:5000` answers `403 Forbidden`
-   (Server: AirTunes) and Flask cannot start there. The E2E fixture only skips
-   on `ConnectionError`, and a 403 is not a connection error. The lab's claim
-   that plain `pytest -v` needs no server is therefore false on your Mac: the
-   3 E2E tests **fail** (`3 failed, 46 passed`) instead of skipping.
-   **Fix (your system setting, I can't change it):** System Settings -> General
-   -> AirDrop & Handoff -> turn **AirPlay Receiver** off. After that,
-   `uv run python -m app` binds 5000 and everything in the lab works as written.
-   For my own verification I pointed the E2E files at port 5050 temporarily and
-   restored them to 5000 afterwards (checked with grep). The files in this
-   folder use port 5000 exactly as the lab specifies.
+The `Merge …` commits are a **local simulation** of the PR merges. Nothing was pushed, there are no PRs or issues on GitHub, and I took no screenshots.
 
-2. **"4 E2E tests" is really 3.** The lab, the PDF template (screenshot 25), and
-   the checklist say four E2E tests, but the code provided has three test
-   functions (`test_add_and_get_tasks_end_to_end` covers TC-RF008-001 and 002).
-   Screenshot 25 will show `3 passed`.
+## What's in this folder
 
-3. **P2b's `create_app` instruction doesn't match the starter.** It says to find
-   `def create_app(service=None):`, but the starter has `def create_app():`,
-   and a note in the same phase says not to add the `service` parameter yet.
-   I annotated it as `create_app() -> Flask` in Phase 2b (that resolves exactly
-   the 20 errors the lab predicts) and added `service: object = None` in Phase 7
-   where the injection logic goes.
+- `task-tracker/`: the finished repo (starter + all lab changes), with the template filled in at `images/s4/kahsai-S4_1-screenshots.md` (name and date; repo URL and screenshots are yours).
+- `evidence/`: raw pytest output from my runs, named after the screenshots they match (no log for Screenshot 1: the baseline was 49 passed, as shown above). These are for checking your own results against. They are not submission screenshots.
+- `run_suite.sh`: the helper I used to run the suite with the Flask server (see discrepancy 1).
 
-4. **`storage: object` vs `storage: Any`.** Phase 2b annotates the constructor as
-   `storage: object = None`, but Phase 3 tells you to find `storage: Any = None`.
-   Use `Any` in Phase 3 (what the lab's final "verify" block shows). The
-   `# type: ignore[attr-defined]` comments stay and mypy remains clean.
+## Test progression (matches the lab's expectations)
 
-5. **The 3 expected failures after Phase 3 are real**, and they clear on their
-   own after Phases 5 and 6 (nothing to edit), exactly as the lab says.
+| Step | Result |
+|---|---|
+| Baseline (Phase 1) | 49 passed, `mypy` and `ruff` clean |
+| Contract tests, before `FileTaskRepository` (Screenshot 2) | **1 passed, 9 errors**, `ModuleNotFoundError: app.repositories.file_task_repository` |
+| After `FileTaskRepository` (Screenshot 3) | 10 passed |
+| 4 unit files updated | 12 passed |
+| After all 8 service test files (Screenshot 4) | 59 passed |
+| pytest-mock route tests (Screenshot 5) | 8 passed |
+| After `MockTaskService` removed (Screenshot 6) | 64 passed |
+| After CLI retired (Screenshot 7) | 64 passed |
+| Coverage (Screenshot 8) | 93%; `app/__init__.py` line 32 (the `use_db` branch) is the expected miss |
 
-## Screenshot map (every command already verified)
+## Screenshot map: commands for YOU to run in your own terminal
 
-| # | File | Command | What you'll see |
+Terminal 1 (server): `uv run python -m app`. Terminal 2 (tests): the commands below. You need to be in the project root.
+The screenshots must come from your own run in your repo. They are your proof of work.
+
+| # | File | When / command | You should see |
 |---|---|---|---|
-| 14 | `14_s3_2_start.png` | `uv run python -m pytest -v` | 33 passed |
-| 15 | `15_task_model_red.png` | `... pytest tests/tasks/test_task_model.py -v` (no task.py yet) | `ModuleNotFoundError: app.models.task` |
-| 16 | `16_task_model_green.png` | same, after `task.py` | 3 passed |
-| 17 | `17_mypy_task_clean.png` | `uv run mypy app/models/task.py` | Success, 1 source file |
-| 18 | `18_mypy_errors.png` | `uv run mypy app/` after tightening | Found 20 errors in 5 files |
-| 18b | `18b_manual_diff_review.png` | GitHub Desktop Changes tab | annotations across 5 files (yours) |
-| 19 | `19_mypy_clean.png` | `uv run mypy app/` | Success, 8 source files |
-| 20 | `20_all_tests_mypy_clean.png` | `uv run python -m pytest -v` | 36 passed |
-| 21 | `21_taskservice_integration_pass.png` | `... pytest tests/tasks/test_task_service_*_integration.py -v`, then full | 7 passed, then 43 passed |
-| 22 | `22_mock_routes_pass.png` | `... pytest tests/tasks/test_routes_with_mock.py -v` | 3 passed |
-| 23 | `23_e2e_add_get_pass.png` | server on 5000, then `... pytest tests/api/test_tasks_api.py::test_add_and_get_tasks_end_to_end -v` | 1 passed |
-| 24 | `24_e2e_complete_pass.png` | same with `::test_complete_task_end_to_end` | 1 passed |
-| 25 | `25_e2e_all_pass.png` | `... pytest tests/api/ -v` | 3 passed (not 4) |
-| 26 | `26_full_coverage.png` | server running, `... pytest --cov=app --cov-report=term-missing -v` | 49 passed, 94% |
-| 27 | `27_coverage_html.png` | `... pytest --cov=app --cov-report=html -v`, open `htmlcov/index.html` | file-by-file breakdown |
+| 1 | `1_s4_1_start.png` | Phase 1, on `main`: `uv run python -m pytest -v` | 49 passed |
+| 1a | `1a_ci_single_run.png` | After the CI PR merges: GitHub → Actions → Python application | PR run on top, no "Merge pull request" run after it |
+| 1b | `1b_ci_one_job_steps.png` | Open that run → **Lint, type-check, test**, expand steps | 10 green steps |
+| 2 | `2_repo_contract_red.png` | After the contract tests, before `file_task_repository.py`: `uv run python -m pytest tests/repositories/ -v` | 1 passed, 9 errors |
+| 3 | `3_repo_contract_green.png` | After `file_task_repository.py`: same command | 10 passed |
+| 4 | `4_all_tests_after_refactor.png` | After Part 7: `uv run python -m pytest -v` (server running) | 59 passed |
+| 5 | `5_pytest_mock_green.png` | `uv run python -m pytest tests/tasks/test_routes_with_mock.py -v` | 8 passed |
+| 6 | `6_full_suite_after_mock_removal.png` | `uv run python -m pytest -v` | 64 passed |
+| 7 | `7_full_suite_after_cli_retirement.png` | `uv run python -m pytest -v` | 64 passed |
+| 8 | `8_full_coverage.png` | `uv run python -m pytest --cov=app --cov-report=term-missing -v` | 93% |
+| 9 | `9_coverage_html.png` | `… --cov-report=html -v`, open `htmlcov/index.html` | per-file coverage table |
 
-Run the commands yourself in your own terminal for genuine screenshots. Turn
-off AirPlay Receiver first (see discrepancy 1) or the E2E screenshots won't work.
+Your numbers can differ from mine by a test or two if your S3_2 repo has different tests. Your baseline count is what matters.
 
-## GitHub Desktop / GitHub.com (yours, same boundary as every lab)
+## Discrepancies I found
 
-Branches per the lab: `feature/task-class-rf004`, `feature/mypy-tighten-s3`,
-`feature/taskservice-task-integration` (phases 3-6, one PR),
-`mocking-infrastructure` (phases 7-8, one PR), `e2e-tests` (phases 9-12, one PR).
-Note the lab's own "GitHub Flow Summary" table at the bottom lists different
-branch names (e.g. `feature/mock-di`); the phase headings above are the
-authoritative ones. Also create the tracking issue from P9-2
-(`CI: pin uv version in GitHub Actions workflows`) and keep it open.
+1. **Port 5000 / macOS AirPlay (important for you).** On your Mac, "AirPlay Receiver" (Control Center) holds port 5000 and answers `403`. Flask cannot start there, and the E2E tests in `tests/api/` **fail** (3 failures) instead of skipping, because the fixture only skips on a connection error. To get a clean 64 passed in your own terminal: System Settings → General → AirDrop & Handoff → turn **AirPlay Receiver** off. I verified using port 5050 via `run_suite.sh` (it edits the E2E URLs temporarily and restores them with `git checkout`). Final files use 5000, as the lab says.
+2. **"ERROR vs FAILED" at Screenshot 2.** The lab says the contract tests all go RED. In reality `test_itaskrepo_cannot_be_instantiated` **passes** even without `FileTaskRepository`, because it never touches the fixture. You will see **1 passed, 9 errors**, not 10 errors. That is correct.
+3. **Test-count wording.** The lab's template says "all 8 pytest-mock route tests", and that matches the code. The S4_1 Agile Docs say seven RF012 tests (TC-RF012-001 to 007), and the Issues Guidance says five. The file has 8 test functions covering IDs 001–007 (007 is used twice, for PUT and DELETE 404). If the instructor counts strictly, your `test_cases.md` note ("seven") is the one that disagrees with the code.
+4. **Import placement in the 4 unit files.** The lab says "after the existing imports". I added the `FileTaskRepository` import after the last existing import. Ruff's default rules in this repo don't enforce import order, so `ruff check` is clean either way.
+5. **Starter state.** `TASKS_FILE` is already named correctly in the starter, so the lab's optional `DATA_FILE` rename was not needed.
+6. **Lab text vs coverage note.** The lab says `use_db=True` shows as uncovered. It does: `app/__init__.py` line 32. Coverage there is 95%.
+7. **`mypy .` in CI vs `mypy app/` locally.** The new workflow runs `uv run mypy .` (the lab text), while you run `mypy app/`. Both are clean: `tests/` is excluded in `pyproject.toml`.
+8. **Scratch artifacts.** `htmlcov/` and `app/data/tasks.json` exist locally but are gitignored.
+
+## Your GitHub Desktop / GitHub.com part (same boundary as every lab)
+
+- Create each branch from `main`, make the commits (messages are in `git log` here), push, and open the PRs with the titles above. Use `Closes #N` with your sub-issue numbers (RF009 + RF010 in one PR, RF012, RF013, and the `[SQA] Sprint 4 CI Pipeline Tune-Up` issue for the CI PR).
+- **Do not click Delete branch** after merging.
+- Part 6 of Phase 2 (publish the branch, then comment on the latest commit: "⏳ Unit test files updated. Integration test commits in progress.") is yours.
+- Because the new workflow ignores `docs/**` and `images/**`, the PR for your screenshots and PDF will have no checks. Merge it.
+- Export the template to PDF, name it `kahsai-S4_1-screenshots.pdf`, and submit it to Blackboard under **S4_1 Lab**.
+- Still outstanding elsewhere: the S4_1 Agile Documentation assignment (done in `L09 S4_1 Assignment`), the S4_1 Reflection & Learning assignment, and the Final Test Report PR (`docs/final-report-s4`).
